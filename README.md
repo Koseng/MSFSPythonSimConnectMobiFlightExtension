@@ -6,6 +6,8 @@ Extends the [python simconnect library](https://github.com/odwdinc/Python-SimCon
 * A collection of possible variables can be found [here](https://bitbucket.org/mobiflight/mobiflightfc/src/master/Presets/msfs2020_simvars.cip) in the [MobiFlight repository](https://bitbucket.org/mobiflight/mobiflightfc).
 * ATTENTION: At the moment it is only possible for one client at a time to access variables via MobiFlight WASM. There is not yet multi client support.
 
+Instead of the SimConnect class you need to use the SimConnectMobiFlight class in your application.
+
 ## Example
 
 **Example code on how to use the library and read variables:**
