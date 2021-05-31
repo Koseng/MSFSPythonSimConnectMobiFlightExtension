@@ -96,7 +96,7 @@ class MobiFlightVariableRequests:
     # simconnect library callback
     def client_data_callback_handler(self, client_data):
         if client_data.dwDefineID in self.sim_vars:
-            data_bytes = struct.pack("i", client_data.dwData[0])
+            data_bytes = struct.pack("I", client_data.dwData[0])
             float_data = struct.unpack('<f', data_bytes)[0]   # unpack delivers a tuple -> [0]
             self.sim_vars[client_data.dwDefineID].float_value = round(float_data, 5)
             logging.debug("client_data_callback_handler %s", self.sim_vars[client_data.dwDefineID])
