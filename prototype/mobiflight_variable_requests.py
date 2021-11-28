@@ -36,7 +36,7 @@ class MobiFlightVariableRequests:
         self.sim_vars = {}
         self.sim_var_name_to_id = {}
 
-        self.init_client = MobiClient("Mobiflight")
+        self.init_client = MobiClient("MobiFlight")
         self.init_client.CLIENT_DATA_AREA_LVARS = 0
         self.init_client.CLIENT_DATA_AREA_CMD = 1
         self.init_client.CLIENT_DATA_AREA_RESPONSE = 2
