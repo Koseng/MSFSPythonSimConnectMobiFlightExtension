@@ -1,6 +1,8 @@
 # MSFS Python SimConnect MobiFlight Extension
 Extends the [python simconnect library](https://github.com/odwdinc/Python-SimConnect) for MSFS2020 with the capability to read A and L variables with help of the [MobiFlight](https://www.mobiflight.com) WASM module.
 
+To just execute Mobiflight SimConnect Events this extension is NOT necessary. This can already be done with the Python-SimConnect library.
+
 * ```SimConnectMobiFlight``` inherits from ```SimConnect```, fixes an issue and adds the feature to register additional client data handlers.
 * ```MobiFlightVariableRequests``` implements the variable access via the MobiFlight WASM module.
 * A collection of possible variables can be found [here](https://github.com/Mobiflight/MobiFlight-Connector/blob/main/Presets/msfs2020_simvars.cip) in the [MobiFlight repository](https://github.com/Mobiflight/MobiFlight-Connector).
