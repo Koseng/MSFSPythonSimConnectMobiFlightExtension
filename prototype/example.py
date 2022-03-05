@@ -17,8 +17,9 @@ def setupLogging(logFileName):
 # MAIN
 setupLogging("SimConnectMobiFlight.log")
 sm = SimConnectMobiFlight()
-vr = MobiFlightVariableRequests("MyGreatApp", sm)
+vr = MobiFlightVariableRequests(sm)
 vr.clear_sim_variables()
+
 
 while True:
     alt_ground = vr.get("(A:GROUND ALTITUDE,Meters)")

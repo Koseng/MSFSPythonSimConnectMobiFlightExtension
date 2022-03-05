@@ -1,10 +1,10 @@
 import logging
 import struct
 import time
-import json
 from ctypes import sizeof
 from ctypes.wintypes import FLOAT
 from SimConnect.Enum import SIMCONNECT_CLIENT_DATA_PERIOD, SIMCONNECT_UNUSED
+import pathlib
 
 class SimVariable:
     def __init__(self, id, name, float_value = 0):
@@ -21,7 +21,7 @@ class MobiClient:
         self.CLIENT_DATA_AREA_LVARS    = None
         self.CLIENT_DATA_AREA_CMD      = None
         self.CLIENT_DATA_AREA_RESPONSE = None
-        self.DATA_STRING_DEFINITION_ID = 0
+        self.DATA_STRING_DEFINITION_ID = None
     def __str__(self):
         s = f"Name={self.CLIENT_NAME}, LVARS_ID={self.CLIENT_DATA_AREA_LVARS}, CMD_ID={self.CLIENT_DATA_AREA_CMD}, "
         return s + f"RESPONSE_ID={self.CLIENT_DATA_AREA_RESPONSE}, DEF_ID={self.DATA_STRING_DEFINITION_ID}"
@@ -29,8 +29,9 @@ class MobiClient:
 
 class MobiFlightVariableRequests:
 
-    def __init__(self, client_name, simConnect):
+    def __init__(self, simConnect):
         logging.info("MobiFlightVariableRequests: __init__")
+        
         self.init_ready = False
         self.sm = simConnect
         self.sim_vars = {}
@@ -42,15 +43,21 @@ class MobiFlightVariableRequests:
         self.init_client.CLIENT_DATA_AREA_RESPONSE = 2
         self.init_client.DATA_STRING_DEFINITION_ID = 0
 
+        working_dir_hash = hash(pathlib.Path.cwd()) % 100000000 # limit to 8 digits
+        last_folder_name = pathlib.Path.cwd().name
+        if len(last_folder_name) > 12:
+            last_folder_name = last_folder_name[:12]
+        client_name = last_folder_name + str(working_dir_hash)
+
         self.my_client = MobiClient(client_name)
-        self.my_client.CLIENT_DATA_AREA_LVARS = None
-        self.my_client.CLIENT_DATA_AREA_CMD = None
-        self.my_client.CLIENT_DATA_AREA_RESPONSE = None
+        self.my_client.CLIENT_DATA_AREA_LVARS = 3
+        self.my_client.CLIENT_DATA_AREA_CMD = 4
+        self.my_client.CLIENT_DATA_AREA_RESPONSE = 5
         self.my_client.DATA_STRING_DEFINITION_ID = 1
 
         self.FLAG_DEFAULT = 0
         self.FLAG_CHANGED = 1
-        self.DATA_STRING_SIZE = 256
+        self.DATA_STRING_SIZE = 1024
         self.DATA_STRING_OFFSET = 0
         self.SIMVAR_DEF_OFFSET = 1000
 
@@ -91,7 +98,7 @@ class MobiFlightVariableRequests:
 
 
     def _send_data(self, client, size, dataBytes):
-        logging.info("send_data: client=%s, size=%s, dataBytes=%s", client, size, dataBytes)
+        logging.info("send_data: client: %s, size=%s, dataBytes=%s", client, size, dataBytes)
         self.sm.dll.SetClientData(
             self.sm.hSimConnect,
             client.CLIENT_DATA_AREA_CMD, 
@@ -128,19 +135,8 @@ class MobiFlightVariableRequests:
         return data_bytes[0:data_bytes.index(0)].decode(encoding='ascii') # index(0) for end of c string
 
 
-    def _initialize_execution_client(self, data_json):
-        logging.info("initialize_execution_client")
-        response_dict = json.loads(data_json)
-        self.my_client.CLIENT_DATA_AREA_LVARS = response_dict["SimVars"]
-        self.my_client.CLIENT_DATA_AREA_RESPONSE = response_dict["Response"]
-        self.my_client.CLIENT_DATA_AREA_CMD = response_dict["Command"]
-        self._initialize_client_data_areas(self.my_client)
-        self.init_ready = True
-
-
     # simconnect library callback
     def _client_data_callback_handler(self, callback_data):
-
         # SimVar Data
         if callback_data.dwDefineID in self.sim_vars:
             data_bytes = struct.pack("I", callback_data.dwData[0])
@@ -153,8 +149,9 @@ class MobiFlightVariableRequests:
             response =  self._c_string_bytes_to_string(bytes(callback_data.dwData))
             logging.debug("client_data_callback_handler: init_client response string: %s", response)
             # Check for response of registering new client
-            if (response.startswith("{") and self.my_client.CLIENT_NAME in response):
-                self._initialize_execution_client(response)
+            if (self.my_client.CLIENT_NAME in response):
+                self._initialize_client_data_areas(self.my_client)
+                self.init_ready = True
 
         # Response string of my_client
         elif callback_data.dwDefineID == self.my_client.DATA_STRING_DEFINITION_ID:
