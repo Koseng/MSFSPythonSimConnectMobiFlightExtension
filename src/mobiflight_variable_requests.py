@@ -1,15 +1,17 @@
 import logging
 import struct
+from time import sleep
 from ctypes import sizeof
 from ctypes.wintypes import FLOAT
 from SimConnect.Enum import SIMCONNECT_CLIENT_DATA_PERIOD, SIMCONNECT_UNUSED
 
 
 class SimVariable:
-    def __init__(self, id, name, float_value = 0):
+    def __init__(self, id, name, float_value = None):
         self.id = id
         self.name = name
         self.float_value = float_value
+        self.callback_counter = 0
     def __str__(self):
         return f"Id={self.id}, value={self.float_value}, name={self.name}"
 
@@ -98,8 +100,12 @@ class MobiFlightVariableRequests:
         if client_data.dwDefineID in self.sim_vars:
             data_bytes = struct.pack("I", client_data.dwData[0])
             float_data = struct.unpack('<f', data_bytes)[0]   # unpack delivers a tuple -> [0]
-            self.sim_vars[client_data.dwDefineID].float_value = round(float_data, 5)
-            logging.debug("client_data_callback_handler %s", self.sim_vars[client_data.dwDefineID])
+            sim_var = self.sim_vars[client_data.dwDefineID]
+            if sim_var.callback_counter < 2: # ignore first two callbacks
+                sim_var.callback_counter = sim_var.callback_counter + 1
+            else:
+                self.sim_vars[client_data.dwDefineID].float_value = round(float_data, 5)
+            logging.debug("client_data_callback_handler %s, raw=%s", sim_var, round(float_data, 5))
         else:
             logging.warning("client_data_callback_handler DefinitionID %s not found!", client_data.dwDefineID)
 
@@ -117,8 +123,15 @@ class MobiFlightVariableRequests:
             self.send_command("MF.SimVars.Add." + variableString)  
         # determine id and return value
         variable_id = self.sim_var_name_to_id[variableString]
-        float_value = self.sim_vars[variable_id].float_value
-        logging.debug("get %s. Return=%s", variableString, float_value)
+        wait_counter = 0
+        while wait_counter < 100: # wait max 1s
+            float_value = self.sim_vars[variable_id].float_value
+            if float_value is None:
+                sleep(0.01) # wait 10ms
+                wait_counter = wait_counter + 1
+            else:
+                break
+        logging.debug("get %s. wait_counter=%s, Return=%s", variableString, wait_counter, float_value)
         return float_value
             
 
