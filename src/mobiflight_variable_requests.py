@@ -11,7 +11,7 @@ class SimVariable:
         self.id = id
         self.name = name
         self.float_value = float_value
-        self.callback_counter = 0
+        self.initialized = False
     def __str__(self):
         return f"Id={self.id}, value={self.float_value}, name={self.name}"
 
@@ -100,12 +100,13 @@ class MobiFlightVariableRequests:
         if client_data.dwDefineID in self.sim_vars:
             data_bytes = struct.pack("I", client_data.dwData[0])
             float_data = struct.unpack('<f', data_bytes)[0]   # unpack delivers a tuple -> [0]
+            float_value = round(float_data, 5)
             sim_var = self.sim_vars[client_data.dwDefineID]
-            if sim_var.callback_counter < 2: # ignore first two callbacks
-                sim_var.callback_counter = sim_var.callback_counter + 1
+            if not sim_var.initialized and float_value == 0.0:
+                sim_var.initialized = True
             else:
-                self.sim_vars[client_data.dwDefineID].float_value = round(float_data, 5)
-            logging.debug("client_data_callback_handler %s, raw=%s", sim_var, round(float_data, 5))
+                self.sim_vars[client_data.dwDefineID].float_value = float_value
+            logging.debug("client_data_callback_handler %s, raw=%s", sim_var, float_value)
         else:
             logging.warning("client_data_callback_handler DefinitionID %s not found!", client_data.dwDefineID)
 
@@ -120,19 +121,21 @@ class MobiFlightVariableRequests:
             offset = (id-1)*sizeof(FLOAT)
             self.add_to_client_data_definition(id, offset, sizeof(FLOAT))
             self.subscribe_to_data_change(self.CLIENT_DATA_AREA_LVARS, id, id)
-            self.send_command("MF.SimVars.Add." + variableString)  
+            self.send_command("MF.SimVars.Add." + variableString)
         # determine id and return value
         variable_id = self.sim_var_name_to_id[variableString]
+        sim_var = self.sim_vars[variable_id]
         wait_counter = 0
-        while wait_counter < 100: # wait max 1s
-            float_value = self.sim_vars[variable_id].float_value
-            if float_value is None:
+        while wait_counter < 50: # wait max 500ms
+            if sim_var.float_value is None:
                 sleep(0.01) # wait 10ms
                 wait_counter = wait_counter + 1
             else:
                 break
-        logging.debug("get %s. wait_counter=%s, Return=%s", variableString, wait_counter, float_value)
-        return float_value
+        if sim_var.float_value is None and sim_var.initialized:
+            sim_var.float_value = 0.0
+        logging.debug("get %s. wait_counter=%s, Return=%s", variableString, wait_counter, sim_var.float_value)
+        return sim_var.float_value
             
 
     def clear_sim_variables(self):
