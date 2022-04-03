@@ -136,8 +136,13 @@ class MobiFlightVariableRequests:
             sim_var.float_value = 0.0
         logging.debug("get %s. wait_counter=%s, Return=%s", variableString, wait_counter, sim_var.float_value)
         return sim_var.float_value
-            
 
+
+    def set(self, variableString):
+        logging.debug("set: %s", variableString)
+        self.send_command("MF.SimVars.Set." + variableString)
+            
+            
     def clear_sim_variables(self):
         logging.info("clear_sim_variables")
         self.sim_vars.clear()
