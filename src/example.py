@@ -20,6 +20,9 @@ sm = SimConnectMobiFlight()
 vr = MobiFlightVariableRequests(sm)
 vr.clear_sim_variables()
 
+# Example write variable
+vr.set("0 (>L:A32NX_COCKPIT_DOOR_LOCKED)")
+
 while True:
     alt_ground = vr.get("(A:GROUND ALTITUDE,Meters)")
     alt_plane = vr.get("(A:PLANE ALTITUDE,Feet)")
